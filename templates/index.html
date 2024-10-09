@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Facial Emotion Recognition and Detection</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(90deg, #3b3b3b, #005eff);
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #ffffff;
+      }
+      #canvas {
+        display: none;
+      }
+      .video-container {
+        position: relative;
+        width: 90vw;
+        max-width: 640px;
+        aspect-ratio: 4 / 2;
+        overflow: hidden;
+        border: 2px solid black;
+        border-radius: 8px;
+        background-color: rgba(87, 78, 78, 0.726);
+      }
+      #video,
+      #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #buttons {
+        margin: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 0 10px;
+        font-size: 16px;
+        color: rgb(207, 206, 206);
+        background-color: #5580ade5;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.2s;
+      }
+      button:hover {
+        background-color: #9cc9f8d3;
+        transform: scale(1.05);
+        color: rgb(20, 20, 20);
+      }
+      #prediction {
+        margin-top: 20px;
+        padding: 20px;
+        font-size: 30px;
+        color: #ffffff;
+        border: 2px solid black;
+        border-radius: 8px;
+        background-color: rgba(87, 78, 78, 0.726);
+        display: none; /* Hide initially */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Facial Emotion Recognition and Detection</h1>
+
+    <div class="video-container">
+      <video id="video" autoplay></video>
+      <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+
+    <div id="buttons">
+      <button id="startButton">Start</button>
+      <button id="stopButton">Stop</button>
+    </div>
+
+    <div id="prediction"></div>
+
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const predictionDiv = document.getElementById("prediction");
+      const context = canvas.getContext("2d");
+      let stream;
+
+      document
+        .getElementById("startButton")
+        .addEventListener("click", startVideo);
+      document
+        .getElementById("stopButton")
+        .addEventListener("click", stopVideo);
+
+      function startVideo() {
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then(function (mediaStream) {
+            stream = mediaStream;
+            video.srcObject = stream;
+            predictEmotion();
+          })
+          .catch(function (error) {
+            console.error("Error accessing the webcam:", error);
+          });
+      }
+
+      function stopVideo() {
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          video.srcObject = null;
+          predictionDiv.innerHTML = "";
+          predictionDiv.style.display = "none";
+        }
+      }
+
+      function predictEmotion() {
+        const interval = setInterval(function () {
+          if (!video.srcObject) {
+            clearInterval(interval);
+            return;
+          }
+
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const canvasData = canvas.toDataURL("image/jpeg", 0.8);
+
+          // No need to hardcode the URL, since Flask serves it
+          fetch("/predictemotion", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ image: canvasData }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              predictionDiv.innerHTML = "Predicted Emotion: " + data.emotion;
+              predictionDiv.style.display = "block";
+
+              context.strokeStyle = "red";
+              context.lineWidth = 2;
+              context.strokeRect(data.x1, data.y1, data.x2, data.y2);
+
+              context.fillStyle = "yellow";
+              context.font = "20px Arial";
+              context.fillText(data.emotion, data.x1 - 10, data.y1 - 10);
+            })
+            .catch((error) => {
+              console.error("Error in predicting Emotion:", error);
+            });
+        }, 300);
+      }
+    </script>
+  </body>
+</html>
