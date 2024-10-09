@@ -45,7 +45,7 @@ def predictemotion():
         pred = model.predict(im)
         labels = {0: 'angry', 1: 'disgust', 2: 'fear', 3: 'happy', 4: 'neutral', 5: 'sad', 6: 'surprise'}
         prediction_label = labels[pred.argmax()]
-        return jsonify({"emotion": prediction_label, "x1": str(p), "y1": str(q), "x2": str(r), "y2": str(s)}), 200
+        return jsonify({"emotion": prediction_label, "x1": str(p), "y1": str(q), "x2": str(p+r), "y2": str(q+s)}), 200
 
     return jsonify({"emotion": "face not detected", "x1": "0", "y1": "0", "x2": "0", "y2": "0"}), 200
 

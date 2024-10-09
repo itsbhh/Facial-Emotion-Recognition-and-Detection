@@ -94,6 +94,7 @@
       const predictionDiv = document.getElementById("prediction");
       const context = canvas.getContext("2d");
       let stream;
+      let interval;
 
       document
         .getElementById("startButton")
@@ -119,13 +120,14 @@
         if (stream) {
           stream.getTracks().forEach((track) => track.stop());
           video.srcObject = null;
+          clearInterval(interval); // Stop further predictions
           predictionDiv.innerHTML = "";
           predictionDiv.style.display = "none";
         }
       }
 
       function predictEmotion() {
-        const interval = setInterval(function () {
+        interval = setInterval(function () {
           if (!video.srcObject) {
             clearInterval(interval);
             return;
@@ -147,18 +149,25 @@
               predictionDiv.innerHTML = "Predicted Emotion: " + data.emotion;
               predictionDiv.style.display = "block";
 
-              context.strokeStyle = "red";
-              context.lineWidth = 2;
-              context.strokeRect(data.x1, data.y1, data.x2, data.y2);
+              if (data.emotion !== "face not detected") {
+                context.strokeStyle = "red";
+                context.lineWidth = 2;
+                context.strokeRect(
+                  parseInt(data.x1),
+                  parseInt(data.y1),
+                  parseInt(data.x2) - parseInt(data.x1),
+                  parseInt(data.y2) - parseInt(data.y1)
+                );
 
-              context.fillStyle = "yellow";
-              context.font = "20px Arial";
-              context.fillText(data.emotion, data.x1 - 10, data.y1 - 10);
+                context.fillStyle = "yellow";
+                context.font = "20px Arial";
+                context.fillText(data.emotion, parseInt(data.x1) - 10, parseInt(data.y1) - 10);
+              }
             })
             .catch((error) => {
               console.error("Error in predicting Emotion:", error);
             });
-        }, 300);
+        }, 300); // Capture frame every 300ms
       }
     </script>
   </body>
